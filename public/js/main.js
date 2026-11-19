@@ -333,6 +333,7 @@ function duelScreenInput(dt) {
 
 // ---- Lancement des parties --------------------------------------------------------------
 function launch(game) {
+  goFullscreen();
   game.fx.intensity = settings.fx;
   game.resize(app.view.w, app.view.h, app.view.dpr);
   app.game = game;
@@ -726,7 +727,7 @@ function globalInput(dt) {
 
 function drawCrosshair() {
   const g = app.game;
-  if (!g || g.mode !== 'arcade' || app.state !== 'playing' || input.lastDevice === 'gamepad') return;
+  if (!g || g.mode !== 'arcade' || app.state !== 'playing' || input.lastDevice !== 'keyboard') return;
   const ctx = canvas.getContext('2d');
   const { dpr } = app.view;
   const { x, y } = input.mouse;
@@ -775,14 +776,102 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-// ---- Démarrage ------------------------------------------------------------------------------------
-async function boot() {
-  if (window.matchMedia('(pointer: coarse)').matches) {
+// ---- Tactile (mobile) ----------------------------------------------------------------------
+function setupTouch() {
+  const coarse = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+  const enable = () => document.body.classList.add('touch');
+  if (coarse) enable();
+  window.addEventListener('touchstart', enable, { passive: true, once: true });
+  if (coarse) {
     const p = document.createElement('p');
-    p.className = 'touch-warning';
-    p.textContent = 'Droid Battle se joue au clavier + souris ou à la manette.';
+    p.className = 'rotate-hint';
+    p.textContent = '↻ Tourne ton téléphone en paysage pour jouer';
     $('.title-wrap').append(p);
   }
+
+  const zone = $('#stick-zone');
+  const base = $('#stick-base');
+  const knob = $('#stick-knob');
+  const R = 60;
+  let id = null;
+  let ox = 0;
+  let oy = 0;
+  const move = (e) => {
+    let dx = e.clientX - ox;
+    let dy = e.clientY - oy;
+    const d = Math.hypot(dx, dy);
+    if (d > R) {
+      dx = (dx / d) * R;
+      dy = (dy / d) * R;
+    }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const m = Math.min(1, d / R);
+    input.touch.mx = d > 8 ? (dx / R) * (m > 0.95 ? 1 / m : 1) : 0;
+    input.touch.my = d > 8 ? (dy / R) * (m > 0.95 ? 1 / m : 1) : 0;
+  };
+  zone.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (id !== null) return;
+    id = e.pointerId;
+    zone.setPointerCapture(id);
+    const r = zone.getBoundingClientRect();
+    ox = e.clientX;
+    oy = e.clientY;
+    base.style.left = `${e.clientX - r.left}px`;
+    base.style.top = `${e.clientY - r.top}px`;
+    base.style.bottom = 'auto';
+    base.style.transform = 'none';
+    base.classList.add('on');
+    input.touch.active = true;
+    input.lastDevice = 'touch';
+    move(e);
+  });
+  zone.addEventListener('pointermove', (e) => {
+    if (e.pointerId === id) move(e);
+  });
+  const end = (e) => {
+    if (e.pointerId !== id) return;
+    id = null;
+    input.touch.active = false;
+    input.touch.mx = input.touch.my = 0;
+    knob.style.transform = '';
+    base.classList.remove('on');
+  };
+  zone.addEventListener('pointerup', end);
+  zone.addEventListener('pointercancel', end);
+
+  $$('[data-vcode]').forEach((b) => {
+    const code = b.dataset.vcode;
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      input.virtualDown(code);
+      b.classList.add('down');
+    });
+    const up = () => {
+      input.virtualUp(code);
+      b.classList.remove('down');
+    };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+    b.addEventListener('pointerleave', up);
+  });
+  $('#t-pause').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    pause();
+  });
+}
+
+function goFullscreen() {
+  if (!document.body.classList.contains('touch') || document.fullscreenElement) return;
+  const el = document.documentElement;
+  el.requestFullscreen?.({ navigationUI: 'hide' })
+    .then(() => screen.orientation?.lock?.('landscape').catch(() => {}))
+    .catch(() => {});
+}
+
+// ---- Démarrage ------------------------------------------------------------------------------------
+async function boot() {
+  setupTouch();
   resize();
   app.demo = makeDemo();
   try {

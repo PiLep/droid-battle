@@ -7,8 +7,8 @@ export const KEYMAPS = {
     left: ['KeyA', 'ArrowLeft'],
     right: ['KeyD', 'ArrowRight'],
     fire: ['Mouse0'],
-    dash: ['Space', 'ShiftLeft'],
-    special: ['Mouse2', 'KeyE'],
+    dash: ['Space', 'ShiftLeft', 'TouchDash'],
+    special: ['Mouse2', 'KeyE', 'TouchSpecial'],
   },
   p1: {
     up: ['KeyW'],
@@ -16,8 +16,8 @@ export const KEYMAPS = {
     left: ['KeyA'],
     right: ['KeyD'],
     fire: ['KeyF'],
-    dash: ['KeyG'],
-    special: ['KeyH'],
+    dash: ['KeyG', 'TouchDash'],
+    special: ['KeyH', 'TouchSpecial'],
   },
   p2: {
     up: ['ArrowUp'],
@@ -59,6 +59,8 @@ class Input {
     this.layout = null;
     this.lastDevice = 'keyboard';
     this.navRepeat = { dir: null, t: 0 };
+    this.touch = { mx: 0, my: 0, active: false };
+    this.lastTouch = 0;
     this.guessAzerty = (navigator.language || '').toLowerCase().startsWith('fr');
   }
 
@@ -72,13 +74,24 @@ class Input {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
+    const fromTouch = () => performance.now() - this.lastTouch < 1000;
+    window.addEventListener(
+      'touchstart',
+      () => {
+        this.lastTouch = performance.now();
+        this.lastDevice = 'touch';
+      },
+      { passive: true, capture: true },
+    );
     target.addEventListener('mousemove', (e) => {
+      if (fromTouch()) return;
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       this.mouse.moved = performance.now();
       this.lastDevice = 'keyboard';
     });
     target.addEventListener('mousedown', (e) => {
+      if (fromTouch()) return;
       const code = `Mouse${e.button}`;
       this.keys.add(code);
       this.pressed.add(code);
@@ -87,6 +100,17 @@ class Input {
     window.addEventListener('mouseup', (e) => this.keys.delete(`Mouse${e.button}`));
     target.addEventListener('contextmenu', (e) => e.preventDefault());
     navigator.keyboard?.getLayoutMap?.().then((m) => (this.layout = m)).catch(() => {});
+  }
+
+  // Boutons tactiles virtuels (codes 'TouchDash', 'TouchSpecial'…)
+  virtualDown(code) {
+    this.keys.add(code);
+    this.pressed.add(code);
+    this.lastDevice = 'touch';
+  }
+
+  virtualUp(code) {
+    this.keys.delete(code);
   }
 
   // À appeler en début de frame
@@ -253,7 +277,7 @@ export class HumanController {
     this.human = true;
   }
 
-  read() {
+  read(me, g) {
     const km = this.keymap;
     let mx = 0;
     let my = 0;
@@ -281,6 +305,15 @@ export class HumanController {
       fire = fire || input.padDown(pi, PAD.fire);
       dash = dash || input.padHit(pi, PAD.dash);
       special = special || input.padHit(pi, PAD.special);
+    }
+    // tactile : joystick virtuel + tir automatique (visée auto)
+    if (input.lastDevice === 'touch' && this.keymap?.dash?.includes('TouchDash')) {
+      if (input.touch.active) {
+        mx = input.touch.mx;
+        my = input.touch.my;
+      }
+      fire = fire || !!(me && g && g.autoAimTarget(me));
+      return { mx, my, aim: null, aimDir: null, fire, dash, special };
     }
     const usingPad = pi !== null && input.pad(pi) && input.lastDevice === 'gamepad';
     if (this.mouse && this.toWorld && !usingPad) aim = this.toWorld(input.mouse.x, input.mouse.y);

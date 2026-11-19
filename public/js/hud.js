@@ -186,9 +186,12 @@ function arcadeHud(g, ctx, W, H) {
   if (g.wave <= 1 && g.durationMs < 14000) {
     const a = clamp((14000 - g.durationMs) / 2000, 0, 1);
     const pad = input.lastDevice === 'gamepad';
+    const touch = input.lastDevice === 'touch';
     const km = KEYMAPS.solo;
     const L = (codes) => codes.map((c) => input.keyLabel(c)).join('/');
-    const hint = pad
+    const hint = touch
+      ? 'Joystick gauche : bouger · tir et visée automatiques · DASH : esquive · SPÉ : spéciale'
+      : pad
       ? 'Stick G : bouger · Stick D : viser · RT : tirer · A : dash · B : spéciale · Start : pause'
       : `${L([km.up[0], km.left[0], km.down[0], km.right[0]])} : bouger · Souris : viser · Clic G : tirer · ${L(km.dash)} : dash · ${L(km.special)} : spéciale · Échap : pause`;
     hintBar(ctx, W, H, hint, a);

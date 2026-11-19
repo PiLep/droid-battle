@@ -63,6 +63,8 @@
 
 html,
 body {
+  touch-action: none;
+  overscroll-behavior: none;
   margin: 0;
   height: 100%;
   overflow: hidden;
@@ -955,5 +957,174 @@ tr.me td {
   }
   .screen.active {
     animation: none;
+  }
+}
+
+/* ---------- Tactile ---------- */
+.touch-ui {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: none;
+  pointer-events: none;
+}
+
+body.touch.playing .touch-ui {
+  display: block;
+}
+
+.stick-zone {
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 0;
+  width: 50%;
+  pointer-events: auto;
+}
+
+.stick-base {
+  position: absolute;
+  left: 90px;
+  bottom: 90px;
+  width: 130px;
+  height: 130px;
+  margin: -65px 0 0 -65px;
+  border-radius: 50%;
+  border: 2px solid rgba(45, 226, 255, 0.45);
+  background: radial-gradient(circle, rgba(45, 226, 255, 0.12), rgba(45, 226, 255, 0.02));
+  opacity: 0.55;
+  transform: translate(0, 50%);
+}
+
+.stick-base.on {
+  opacity: 1;
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, var(--p1) 60%);
+  box-shadow: 0 0 18px var(--p1);
+}
+
+.tbtn {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(8, 12, 30, 0.55);
+  color: #fff;
+  font-family: var(--title);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tbtn.down {
+  transform: scale(0.92);
+  background: rgba(45, 226, 255, 0.35);
+}
+
+.tbtn-dash {
+  right: 28px;
+  bottom: 34px;
+  width: 92px;
+  height: 92px;
+  border-color: var(--p1);
+  box-shadow: 0 0 16px rgba(45, 226, 255, 0.4);
+}
+
+.tbtn-special {
+  right: 136px;
+  bottom: 74px;
+  width: 78px;
+  height: 78px;
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 16px rgba(255, 210, 61, 0.35);
+}
+
+.tbtn-pause {
+  top: 10px;
+  left: 50%;
+  margin-left: -22px;
+  width: 44px;
+  height: 44px;
+  font-size: 12px;
+  top: 92px;
+}
+
+/* petits écrans (téléphone en paysage) */
+@media (max-height: 560px) {
+  .screen {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 14px 12px;
+  }
+  .screen > * {
+    flex-shrink: 0;
+  }
+  .screen > :first-child {
+    margin-top: auto;
+  }
+  .screen > :last-child {
+    margin-bottom: auto;
+  }
+  .logo-top {
+    font-size: min(10vw, 17vh);
+  }
+  .logo-bottom {
+    font-size: min(6.6vw, 11vh);
+  }
+  .title-wrap {
+    gap: 8px;
+  }
+  .menu {
+    gap: 6px;
+  }
+  .btn {
+    padding: 8px 20px;
+    font-size: 15px;
+  }
+  .btn small {
+    font-size: 13px;
+  }
+  .card {
+    width: 220px;
+    padding: 10px 12px;
+  }
+  .card canvas,
+  .duel-col canvas {
+    height: 80px;
+  }
+  .screen-title {
+    font-size: 26px;
+  }
+  .footer-hint {
+    display: none;
+  }
+  .go-score {
+    font-size: 44px;
+  }
+}
+
+.rotate-hint {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    display: block;
+    margin: 0;
+    color: var(--gold);
+    font-size: 15px;
+    text-align: center;
   }
 }
