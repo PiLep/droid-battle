@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Droid Battle</title>
+    <meta name="description" content="Combat de droïdes néon en arène 2D : mode arcade par vagues avec classement en ligne, et duel à deux en local." />
+    <meta name="theme-color" content="#04050c" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <canvas id="game" aria-label="Arène de combat"></canvas>
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <div id="ui">
+      <!-- Écran titre -->
+      <section id="screen-title" class="screen" data-back="">
+        <div class="title-wrap">
+          <h1 class="logo" aria-label="Droid Battle">
+            <span class="logo-top glitch" data-text="DROID">DROID</span>
+            <span class="logo-bottom glitch" data-text="BATTLE">BATTLE</span>
+          </h1>
+          <p class="tagline">Arène de combat néon · 2D</p>
+          <nav class="menu" aria-label="Menu principal">
+            <button class="btn btn-primary" data-action="arcade">Arcade<small>Survie par vagues · classement en ligne</small></button>
+            <button class="btn" data-action="duel">Duel<small>1 contre 1 · à deux ou contre le CPU</small></button>
+            <button class="btn" data-action="leaderboard">Classement</button>
+            <button class="btn" data-action="controls">Commandes</button>
+            <button class="btn" data-action="settings">Réglages</button>
+          </nav>
+          <p class="best" id="best-score"></p>
+        </div>
+        <p class="footer-hint">Manette compatible · <span class="kbd">Entrée</span> valider · <span class="kbd">Échap</span> retour</p>
+      </section>
+
+      <!-- Sélection arcade -->
+      <section id="screen-select" class="screen" data-back="title">
+        <h2 class="screen-title">Choisis ton droïde</h2>
+        <div class="cards" id="arcade-cards"></div>
+        <div class="row">
+          <button class="btn btn-ghost" data-action="back">Retour</button>
+          <button class="btn btn-primary" data-action="start-arcade">Lancer la partie</button>
+        </div>
+      </section>
+
+      <!-- Sélection duel -->
+      <section id="screen-duel" class="screen" data-back="title">
+        <h2 class="screen-title">Duel</h2>
+        <div class="duel-grid">
+          <div class="duel-col" id="duel-p1" style="--pc: var(--p1)"></div>
+          <div class="versus">VS</div>
+          <div class="duel-col" id="duel-p2" style="--pc: var(--p2)"></div>
+        </div>
+        <div class="row">
+          <button class="btn btn-ghost" data-action="back">Retour</button>
+          <button class="btn btn-primary" data-action="start-duel">Combattre</button>
+        </div>
+      </section>
+
+      <!-- Pause -->
+      <section id="screen-pause" class="screen overlay" data-back="resume">
+        <h2 class="screen-title">Pause</h2>
+        <nav class="menu small">
+          <button class="btn btn-primary" data-action="resume">Reprendre</button>
+          <button class="btn" data-action="restart">Recommencer</button>
+          <button class="btn" data-action="settings-from-pause">Réglages</button>
+          <button class="btn btn-ghost" data-action="quit">Quitter</button>
+        </nav>
+      </section>
+
+      <!-- Fin arcade -->
+      <section id="screen-gameover" class="screen overlay" data-back="menu">
+        <h2 class="screen-title danger">Game Over</h2>
+        <div class="go-score" id="go-score">0</div>
+        <div class="go-best" id="go-best"></div>
+        <div class="stats" id="go-stats"></div>
+        <form class="submit-form" id="score-form" autocomplete="off">
+          <label for="player-name">Ton pseudo pour le classement</label>
+          <div class="input-row">
+            <input id="player-name" name="name" maxlength="16" minlength="2" required placeholder="PILOTE" spellcheck="false" />
+            <button class="btn btn-primary" type="submit" id="submit-btn">Enregistrer</button>
+          </div>
+          <p class="form-msg" id="form-msg" role="status"></p>
+        </form>
+        <div class="mini-board" id="go-board"></div>
+        <div class="row">
+          <button class="btn btn-primary" data-action="replay">Rejouer</button>
+          <button class="btn" data-action="change-droid">Changer de droïde</button>
+          <button class="btn btn-ghost" data-action="menu">Menu</button>
+        </div>
+      </section>
+
+      <!-- Fin duel -->
+      <section id="screen-duel-end" class="screen overlay" data-back="menu">
+        <h2 class="screen-title" id="duel-winner">Victoire</h2>
+        <p class="duel-score" id="duel-score"></p>
+        <div class="row">
+          <button class="btn btn-primary" data-action="rematch">Revanche</button>
+          <button class="btn" data-action="duel">Changer de droïdes</button>
+          <button class="btn btn-ghost" data-action="menu">Menu</button>
+        </div>
+      </section>
+
+      <!-- Classement -->
+      <section id="screen-leaderboard" class="screen" data-back="title">
+        <h2 class="screen-title">Classement arcade</h2>
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-period="all" role="tab">Tous les temps</button>
+          <button class="tab" data-period="week" role="tab">Semaine</button>
+          <button class="tab" data-period="day" role="tab">Aujourd'hui</button>
+        </div>
+        <div class="board" id="board"></div>
+        <div class="row">
+          <button class="btn btn-ghost" data-action="back">Retour</button>
+        </div>
+      </section>
+
+      <!-- Commandes -->
+      <section id="screen-controls" class="screen" data-back="title">
+        <h2 class="screen-title">Commandes</h2>
+        <div class="controls-grid" id="controls-grid"></div>
+        <div class="row">
+          <button class="btn btn-ghost" data-action="back">Retour</button>
+        </div>
+      </section>
+
+      <!-- Réglages -->
+      <section id="screen-settings" class="screen" data-back="title">
+        <h2 class="screen-title">Réglages</h2>
+        <div class="settings">
+          <label class="setting">
+            <span>Effets sonores</span>
+            <input type="range" min="0" max="1" step="0.05" id="set-sfx" />
+          </label>
+          <label class="setting">
+            <span>Musique</span>
+            <input type="range" min="0" max="1" step="0.05" id="set-music" />
+          </label>
+          <div class="setting">
+            <span>Tremblement d'écran</span>
+            <div class="seg" id="set-shake">
+              <button data-v="0">Off</button><button data-v="0.5">Doux</button><button data-v="1">Normal</button><button data-v="1.5">Fort</button>
+            </div>
+          </div>
+          <div class="setting">
+            <span>Particules</span>
+            <div class="seg" id="set-fx">
+              <button data-v="0.5">Basse</button><button data-v="1">Normale</button><button data-v="1.4">Ultra</button>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn btn-ghost" data-action="back">Retour</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="loader" class="loader">CHARGEMENT…</div>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
